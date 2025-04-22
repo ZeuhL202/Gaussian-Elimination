@@ -1,17 +1,13 @@
 mod gauss;
 use gauss::Gauss;
-
 fn main() {
-    let a = [
-        "2/1",  "4/1",  "-4/1",  "6/1",
-        "1/1", "-1/1",   "3/1",  "4/1",
-        "2/1",  "3/1",  "-5/1", "11/1",
+    let a = vec![
+        1,  1, 5,
+        2, -1, 1,
     ];
 
-    let b = a.map(|s| s.to_string());
-
-    let mut gauss = Gauss::new(b);
+    let mut gauss = Gauss::new_numerator(a);
     println!("{}", gauss);
-    gauss.solve();
+    gauss.solve(true);
     println!("{}", gauss);
 }

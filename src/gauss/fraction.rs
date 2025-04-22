@@ -1,11 +1,8 @@
 use::std::{fmt, ops};
 
-/// 分数
 #[derive(Debug, Clone, Copy, Eq, PartialEq)]
 pub struct Fraction {
-    /// 分子 (符号を管理するために isize)
-    pub numerator: isize,
-    /// 分母
+    pub numerator: isize,    // 符号は分子側で表現
     pub denominator: usize,
 }
 
@@ -32,9 +29,10 @@ fn panic_denominator_zero(denominator: usize) {
 /// 分数の構造体
 impl Fraction {
     /// 分数を生成する
-    pub fn new(format: String) -> Self {
-        let (numerator, denominator) = format.split_once('/')
-            .expect("Invalid format. Expected 'numerator/denominator'");
+    pub fn new_string(format: String) -> Self {
+        let (numerator, denominator) =
+                format.split_once('/')
+                    .expect("Invalid format. Expected 'numerator/denominator'");
 
         let numerator = numerator.parse::<isize>()
             .expect("Invalid numerator format");
@@ -47,6 +45,13 @@ impl Fraction {
         Self {
             numerator: numerator,
             denominator: denominator,
+        }
+    }
+
+    pub fn new_numerator(numerator: isize) -> Self {
+        Self {
+            numerator: numerator,
+            denominator: 1,
         }
     }
 
@@ -219,114 +224,114 @@ mod tests {
 
     #[test]
     fn test_add_positive() {
-        let mut a = Fraction::new("1/2".to_string());
-        let b = Fraction::new("3/4".to_string());
+        let mut a = Fraction::new_string("1/2".to_string());
+        let b = Fraction::new_string("3/4".to_string());
         a += b;
-        assert_eq!(a, Fraction::new("5/4".to_string()));
+        assert_eq!(a, Fraction::new_string("5/4".to_string()));
     }
 
     #[test]
     fn test_add_negative() {
-        let mut a = Fraction::new("-1/2".to_string());
-        let b = Fraction::new("-3/4".to_string());
+        let mut a = Fraction::new_string("-1/2".to_string());
+        let b = Fraction::new_string("-3/4".to_string());
         a += b;
-        assert_eq!(a, Fraction::new("-5/4".to_string()));
+        assert_eq!(a, Fraction::new_string("-5/4".to_string()));
     }
 
     #[test]
     fn test_sub_positive() {
-        let mut a = Fraction::new("1/2".to_string());
-        let b = Fraction::new("3/4".to_string());
+        let mut a = Fraction::new_string("1/2".to_string());
+        let b = Fraction::new_string("3/4".to_string());
         a -= b;
-        assert_eq!(a, Fraction::new("-1/4".to_string()));
+        assert_eq!(a, Fraction::new_string("-1/4".to_string()));
     }
 
     #[test]
     fn test_sub_negative() {
-        let mut a = Fraction::new("-1/2".to_string());
-        let b = Fraction::new("-3/4".to_string());
+        let mut a = Fraction::new_string("-1/2".to_string());
+        let b = Fraction::new_string("-3/4".to_string());
         a -= b;
-        assert_eq!(a, Fraction::new("1/4".to_string()));
+        assert_eq!(a, Fraction::new_string("1/4".to_string()));
     }
 
     #[test]
     fn test_mul_p_p() {
-        let a = Fraction::new("1/2".to_string());
-        let b = Fraction::new("3/4".to_string());
+        let a = Fraction::new_string("1/2".to_string());
+        let b = Fraction::new_string("3/4".to_string());
         let result = a * b;
-        assert_eq!(result, Fraction::new("3/8".to_string()));
+        assert_eq!(result, Fraction::new_string("3/8".to_string()));
     }
 
     #[test]
     fn test_mul_p_n() {
-        let a = Fraction::new("1/2".to_string());
-        let b = Fraction::new("-3/4".to_string());
+        let a = Fraction::new_string("1/2".to_string());
+        let b = Fraction::new_string("-3/4".to_string());
         let result = a * b;
-        assert_eq!(result, Fraction::new("-3/8".to_string()));
+        assert_eq!(result, Fraction::new_string("-3/8".to_string()));
     }
 
     #[test]
     fn test_mul_n_p() {
-        let a = Fraction::new("-1/2".to_string());
-        let b = Fraction::new("3/4".to_string());
+        let a = Fraction::new_string("-1/2".to_string());
+        let b = Fraction::new_string("3/4".to_string());
         let result = a * b;
-        assert_eq!(result, Fraction::new("-3/8".to_string()));
+        assert_eq!(result, Fraction::new_string("-3/8".to_string()));
     }
 
     #[test]
     fn test_mul_n_n() {
-        let a = Fraction::new("-1/2".to_string());
-        let b = Fraction::new("-3/4".to_string());
+        let a = Fraction::new_string("-1/2".to_string());
+        let b = Fraction::new_string("-3/4".to_string());
         let result = a * b;
-        assert_eq!(result, Fraction::new("3/8".to_string()));
+        assert_eq!(result, Fraction::new_string("3/8".to_string()));
     }
 
     #[test]
     fn test_div_p_p() {
-        let a = Fraction::new("1/2".to_string());
-        let b = Fraction::new("3/4".to_string());
+        let a = Fraction::new_string("1/2".to_string());
+        let b = Fraction::new_string("3/4".to_string());
         let result = a / b;
-        assert_eq!(result, Fraction::new("2/3".to_string()));
+        assert_eq!(result, Fraction::new_string("2/3".to_string()));
     }
 
     #[test]
     fn test_div_p_n() {
-        let a = Fraction::new("1/2".to_string());
-        let b = Fraction::new("-3/4".to_string());
+        let a = Fraction::new_string("1/2".to_string());
+        let b = Fraction::new_string("-3/4".to_string());
         let result = a / b;
-        assert_eq!(result, Fraction::new("-2/3".to_string()));
+        assert_eq!(result, Fraction::new_string("-2/3".to_string()));
     }
 
     #[test]
     fn test_div_n_p() {
-        let a = Fraction::new("-1/2".to_string());
-        let b = Fraction::new("3/4".to_string());
+        let a = Fraction::new_string("-1/2".to_string());
+        let b = Fraction::new_string("3/4".to_string());
         let result = a / b;
-        assert_eq!(result, Fraction::new("-2/3".to_string()));
+        assert_eq!(result, Fraction::new_string("-2/3".to_string()));
     }
 
     #[test]
     fn test_div_n_n() {
-        let a = Fraction::new("-1/2".to_string());
-        let b = Fraction::new("-3/4".to_string());
+        let a = Fraction::new_string("-1/2".to_string());
+        let b = Fraction::new_string("-3/4".to_string());
         let result = a / b;
-        assert_eq!(result, Fraction::new("2/3".to_string()));
+        assert_eq!(result, Fraction::new_string("2/3".to_string()));
     }
 
     #[test]
     fn test_align_each_denominator() {
-        let mut a = Fraction::new("1/2".to_string());
-        let mut b = Fraction::new("3/4".to_string());
+        let mut a = Fraction::new_string("1/2".to_string());
+        let mut b = Fraction::new_string("3/4".to_string());
         align_each_denominator(&mut a, &mut b);
-        assert_eq!(a, Fraction::new("2/4".to_string()));
-        assert_eq!(b, Fraction::new("3/4".to_string()));
+        assert_eq!(a, Fraction::new_string("2/4".to_string()));
+        assert_eq!(b, Fraction::new_string("3/4".to_string()));
     }
 
     #[test]
     fn test_reduce() {
-        let mut a = Fraction::new("4/8".to_string());
+        let mut a = Fraction::new_string("4/8".to_string());
         a.reduce();
-        assert_eq!(a, Fraction::new("1/2".to_string()));
+        assert_eq!(a, Fraction::new_string("1/2".to_string()));
     }
 
     #[test]

@@ -1,52 +1,135 @@
-use::std::fmt;
+use std::fmt;
+use std::cmp::Ordering::*;
 mod fraction;
 use fraction::Fraction;
 
-pub struct Gauss([[Fraction; 4]; 3]);
+#[derive(Debug, Clone)]
+pub struct Gauss {
+    dimension: usize,
+    value: Vec<Vec<Fraction>>,
+}
 
 impl Gauss {
-    pub fn new(a: [String; 12]) -> Self {
-        let fractions = a.map(Fraction::new);
-        let mut gauss = [[Fraction::new("0/1".to_string()); 4]; 3];
+    // 文字列から行列を生成
+    pub fn _new_string(fraction_strings: Vec<String>) -> Self {
 
-        for i in 0..3 {
-            for j in 0..4 {
-                gauss[i][j] = fractions[i * 4 + j].clone();
+        /*
+            ベクターの長さから次元を計算
+            例)
+                |1  1 : 5|
+                |2 -1 : 1|
+                    fraction_len = 6
+
+                    i = 0, i.pow(2) + i = 0 (Greater)
+                    i = 1, i.pow(2) + i = 2 (Greater)
+                    i = 2, i.pow(2) + i = 6 (Equal)
+
+                この場合、次元は2
+         */
+        let dimension: usize = {
+            let fraction_len = fraction_strings.len();
+            let mut i: usize = 0;
+
+            loop {
+                match (fraction_len - i.pow(2) - i).cmp(&0) {
+                    // 正方行列でないのでパニック
+                    Less => panic!("Invalid input: not a valid dimension"),
+
+                    Equal => break i,
+
+                    Greater => i += 1,
+                }
             }
-        }
-        Self(gauss)
+        };
+
+        let value: Vec<Vec<Fraction>>
+            = fraction_strings
+                .into_iter()
+                .map(Fraction::new_string)
+                .collect::<Vec<Fraction>>()
+                .chunks(dimension + 1)  // ベクターを次元+1ごとに分割
+                .map(|x| x.to_vec())
+                .collect();
+
+        Self { dimension, value }
     }
 
-    pub fn solve(&mut self) {
-        for i in 0..self.0.len() {
+    pub fn new_numerator(numerators: Vec<isize>) -> Self {
+        let dimension: usize = {
+            let numerator_len = numerators.len();
+            let mut i = 0;
+
+            loop {
+                match (numerator_len - i - (i * i)).cmp(&0) {
+                    Less => panic!("Invalid input: not a valid dimension"),
+                    Equal => break i,
+                    Greater => i += 1,
+                }
+            }
+        };
+        let value: Vec<Vec<Fraction>>
+            = numerators
+                .into_iter()
+                .map(Fraction::new_numerator)
+                .collect::<Vec<Fraction>>()
+                .chunks(dimension + 1)
+                .map(|x| x.to_vec())
+                .collect();
+        Self { dimension, value }
+    }
+
+    pub fn solve(&mut self, print: bool) {
+        for i in 0..self.dimension {
             self.divide_and_subtract(i);
+            if print {
+                println!("{}", self);
+            }
         }
     }
 
     fn divide_and_subtract(&mut self, num: usize) {
-        let pivot = self.0[num][num].clone();
-        let non_pivot_rows: Vec<usize> = (0..self.0.len()).filter(|&i| i != num).collect();
+        let pivot = self.value[num][num];
+        let non_pivot_rows: Vec<usize>
+            = (0..self.dimension)
+                .filter(|&i| i != num)
+                .collect();
 
-        self.0[num].iter_mut().for_each(|x| *x /= pivot.clone());
+        self.value[num]
+            .iter_mut()
+            .for_each(|x| *x /= pivot);
 
         for i in non_pivot_rows {
-            let factor = self.0[i][num].clone();
+            let factor = self.value[i][num];
 
-            for j in 0..self.0[i].len() {
-                self.0[i][j] -= factor * self.0[num][j];
+            for j in 0..self.dimension+1 {
+                let value_num = self.value[num][j];
+                self.value[i][j] -= factor * value_num;
             }
         }
+    }
+
+    fn extract(&self) -> Vec<isize> {
+        let mut result = vec![];
+
+        for i in 0..self.dimension {
+            result.push(self.value[i][self.dimension]);
+        }
+
+        result
+            .into_iter()
+            .map(|x| x.numerator)
+            .collect()
     }
 }
 
 
 impl fmt::Display for Gauss {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let mut max_space_each_row: [usize; 4] = [0, 0, 0, 0];
+        let mut max_space_each_row = [0].repeat(self.dimension + 1);
 
-        for i in 0..4 {
-            for j in 0..3 {
-                let len = self.0[j][i].len();
+        for i in 0..self.dimension + 1 {
+            for j in 0..self.dimension {
+                let len = self.value[j][i].len();
                 if max_space_each_row[i] < len {
                     max_space_each_row[i] = len;
                 }
@@ -54,25 +137,82 @@ impl fmt::Display for Gauss {
         }
 
         let mut str = String::new();
-        let edge_space = " ".repeat(max_space_each_row.iter().sum::<usize>() + 6);
+        let edge_space = " ".repeat(max_space_each_row.iter().sum::<usize>() + (self.dimension * 2) + 1);
 
         let each_space = |i: usize, j: usize| -> String {
-            " ".repeat(max_space_each_row[j] - self.0[i][j].len() + 1)
+            " ".repeat(max_space_each_row[j] - self.value[i][j].len() + 1)
         };
 
         str += format!("┌{}┐\n", edge_space).as_str();
 
 
-        for i in 0..3 {
+        for i in 0..self.dimension {
             str += "│";
 
-            for j in 0..3 {
-                str += format!("{}{}", each_space(i, j), self.0[i][j].to_string()).as_ref();
+            for j in 0..self.dimension {
+                str += each_space(i, j).as_str();
+                str += self.value[i][j].to_string().as_str();
             }
 
-            str += format!(": {}{}│\n", self.0[i][3].to_string(), each_space(i, 3)).as_str();
+            str += format!(
+                ":{}{} │\n",
+                each_space(i, self.dimension),
+                self.value[i][self.dimension].to_string()
+            ).as_str();
         }
         str += format!("└{}┘", edge_space).as_str();
         write!(f, "{}", str)
+    }
+}
+
+// TESTS
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn test_temp(
+        value: Vec<isize>,
+        solution: Vec<isize>,
+    ) {
+        let mut gauss = Gauss::new_numerator(value);
+        gauss.solve(false);
+        assert_eq!(gauss.extract(), solution);
+    }
+
+    #[test]
+    fn two() {
+        test_temp(
+            vec![
+                1, 1, 5,
+                2, -1, 1
+            ],
+            vec![2, 3]
+        );
+    }
+
+    #[test]
+    fn three() {
+        test_temp(
+            vec![
+                1,  1,  1,  6,
+                2, -1,  3,  7,
+                1,  4, -1, 10,
+            ],
+            vec![3, 2, 1]
+        );
+    }
+
+    #[test]
+    fn four() {
+        test_temp(
+            vec![
+                1,  1,  1,  1, 10,
+                2,  3, -1,  1,  9,
+                1, -1,  2,  3, 17,
+                4,  1,  1, -2,  1
+            ],
+            vec![1, 2, 3, 4]
+        );
     }
 }
