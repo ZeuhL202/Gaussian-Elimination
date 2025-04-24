@@ -1,6 +1,5 @@
 use std::fmt;
-use std::cmp::Ordering::*;
-mod fraction;
+pub mod fraction;
 use fraction::Fraction;
 
 #[derive(Debug, Clone)]
@@ -10,71 +9,67 @@ pub struct Gauss {
 }
 
 impl Gauss {
-    // 文字列から行列を生成
-    pub fn _new_string(fraction_strings: Vec<String>) -> Self {
+    /// Creates a new Gauss object from a vector of fractions
+    ///
+    /// # Examples
+    /// ```
+    /// use gauss::gauss::Gauss;
+    /// use gauss::fraction::Fraction;
+    ///
+    /// let gauss = Gauss::new(
+    ///     vec![
+    ///         (1, 1), ( 1, 1), (5, 1),
+    ///         (2, 1), (-1, 1), (1, 1)
+    ///     ]
+    ///     .map(Fraction::new)
+    ///     .collect()
+    /// );
+    /// ```
+    pub const fn new(fractions: &[Fraction]) -> Self {
 
-        /*
-            ベクターの長さから次元を計算
-            例)
-                |1  1 : 5|
-                |2 -1 : 1|
-                    fraction_len = 6
-
-                    i = 0, i.pow(2) + i = 0 (Greater)
-                    i = 1, i.pow(2) + i = 2 (Greater)
-                    i = 2, i.pow(2) + i = 6 (Equal)
-
-                この場合、次元は2
-         */
-        let dimension: usize = {
-            let fraction_len = fraction_strings.len();
+        // calculates the dimension of the matrix from the number of elements
+        //
+        // i.pow(n): number of elements on the left  side
+        // i:        number of elements on the right side
+        //
+        // # Examples
+        //
+        // [ 1  1  1 |  6 ]
+        // [ 2 -1  3 |  7 ]
+        // [ 1  4 -1 | 10 ]
+        //
+        // elements_len = 12
+        //
+        // i = 0; i.pow(2) + i = 0  (Greater than 0)
+        // i = 1; i.pow(2) + i = 2  (Greater than 0)
+        // i = 2; i.pow(2) + i = 6  (Greater than 0)
+        // i = 3; i.pow(2) + i = 12 (Equal to 0)
+        //
+        // dimension = 3
+        let dimension = {
+            let elements_len = fractions.len();
             let mut i: usize = 0;
 
             loop {
-                match (fraction_len - i.pow(2) - i).cmp(&0) {
-                    // 正方行列でないのでパニック
-                    Less => panic!("Invalid input: not a valid dimension"),
+                let lefted_elements = elements_len - i.pow(2) - i;
 
-                    Equal => break i,
-
-                    Greater => i += 1,
+                if lefted_elements == 0 {
+                    // 
+                    break i;
+                } else if lefted_elements > 0 {
+                    i += 1;
+                } else {
+                    panic!("Invalid input: not a valid dimension");
                 }
             }
         };
 
-        let value: Vec<Vec<Fraction>>
-            = fraction_strings
-                .into_iter()
-                .map(Fraction::new_string)
-                .collect::<Vec<Fraction>>()
-                .chunks(dimension + 1)  // ベクターを次元+1ごとに分割
-                .map(|x| x.to_vec())
-                .collect();
+        let value = fractions
+            .chunks(dimension + 1)
+            .map(|x| x.to_vec())
+            .collect();
 
-        Self { dimension, value }
-    }
-
-    pub fn new_numerator(numerators: Vec<isize>) -> Self {
-        let dimension: usize = {
-            let numerator_len = numerators.len();
-            let mut i = 0;
-
-            loop {
-                match (numerator_len - i - (i * i)).cmp(&0) {
-                    Less => panic!("Invalid input: not a valid dimension"),
-                    Equal => break i,
-                    Greater => i += 1,
-                }
-            }
-        };
-        let value: Vec<Vec<Fraction>>
-            = numerators
-                .into_iter()
-                .map(Fraction::new_numerator)
-                .collect::<Vec<Fraction>>()
-                .chunks(dimension + 1)
-                .map(|x| x.to_vec())
-                .collect();
+        
         Self { dimension, value }
     }
 
@@ -175,8 +170,14 @@ mod tests {
         value: Vec<isize>,
         solution: Vec<isize>,
     ) {
-        let mut gauss = Gauss::new_numerator(value);
+        let mut gauss = Gauss::new(
+            value
+                .into_iter()
+                .map(|x| Fraction::new(x, 1))
+                .collect()
+        );
         gauss.solve(false);
+
         assert_eq!(gauss.extract(), solution);
     }
 
@@ -184,7 +185,7 @@ mod tests {
     fn two() {
         test_temp(
             vec![
-                1, 1, 5,
+                1,  1, 5,
                 2, -1, 1
             ],
             vec![2, 3]
