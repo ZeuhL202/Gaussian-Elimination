@@ -57,11 +57,16 @@ impl Fraction {
     /// assert_eq!(Fraction::new(-1, 3).len(), 4); // "-1/3" is 4 characters long
     /// assert_eq!(Fraction::new( 1, 1).len(), 1); //    "1" is 1 character  long
     /// ```
-    pub const fn len(&self) -> usize {
+    pub fn len(&self) -> usize {
+        let numerator_len = self.numerator.to_string().len();
+
         if self.denominator == 1 {
-            return self.numerator.to_be_bytes().len()
+            return numerator_len
         }
-        self.numerator.to_be_bytes().len() + 1 + self.denominator.to_be_bytes().len()
+
+        let denominator_len = self.denominator.to_string().len();
+
+        numerator_len + 1 + denominator_len
     }
 
     /// reduces the fraction
@@ -186,12 +191,14 @@ impl ops::Div for Fraction {
     type Output = Self;
 
     fn div(self, other: Self) -> Self {
+        // if the signs are different, the result is negative
+        let sign_is_different = self.numerator.is_negative() ^ other.numerator.is_negative();
+
         let mut numerator   = self.numerator.abs() * (other.denominator     as isize);
         let     denominator = self.denominator     * (other.numerator.abs() as usize);
 
-        // if the signs are different, the result is negative
-        if self.numerator.is_negative() ^ other.numerator.is_negative() {
-            numerator = -numerator;
+        if sign_is_different {
+            numerator *= -1;
         }
 
         let mut result = Self {
@@ -205,12 +212,13 @@ impl ops::Div for Fraction {
 
 impl ops::DivAssign for Fraction {
     fn div_assign(&mut self, other: Self) {
-        self.numerator   *= other.denominator     as isize;
-        self.denominator *= other.numerator.abs() as usize;
+        let sign_is_different = self.numerator.is_negative() ^ other.numerator.is_negative();
 
-        // if the signs are different, the result is negative
-        if self.numerator.is_negative() ^ other.numerator.is_negative() {
-            self.numerator = -self.numerator;
+        self.numerator   = self.numerator.abs() * (other.denominator     as isize);
+        self.denominator = self.denominator     * (other.numerator.abs() as usize);
+
+        if sign_is_different {
+            self.numerator *= -1;
         }
 
         self.reduce();
@@ -328,6 +336,14 @@ mod tests {
         let b = Fraction::new(-3, 4);
         let result = a / b;
         assert_eq!(result, Fraction::new(2, 3));
+    }
+
+    #[test]
+    fn test_div_n_n_assign() {
+        let mut a = Fraction::new(-1, 2);
+        let b = Fraction::new(-3, 4);
+        a /= b;
+        assert_eq!(a, Fraction::new(2, 3));
     }
 
     #[test]

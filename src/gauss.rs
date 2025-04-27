@@ -9,6 +9,45 @@ pub struct Gauss {
 }
 
 impl Gauss {
+
+    /// calculates the dimension of the matrix from the number of elements
+    ///
+    /// i.pow(n): number of elements on the left  side
+    /// i:        number of elements on the right side
+    ///
+    /// # Examples
+    /// ```
+    /// [ 1  1  1 |  6 ]
+    /// [ 2 -1  3 |  7 ]
+    /// [ 1  4 -1 | 10 ]
+    ///
+    /// elements_len = 12
+    ///
+    /// i = 0  (i.pow(2) + i) =  0  (Greater than 0)
+    /// i = 1  (i.pow(2) + i) =  2  (Greater than 0)
+    /// i = 2  (i.pow(2) + i) =  6  (Greater than 0)
+    /// i = 3  (i.pow(2) + i) = 12  (Equal   to   0)
+    ///
+    /// dimension = 3
+    /// ```
+    fn calculate_dimension(fractions: &[Fraction]) -> usize {
+        let elements_len = fractions.len();
+        let mut i: usize = 0;
+
+        loop {
+            let lefted_elements = elements_len - i.pow(2) - i;
+
+            if lefted_elements == 0 {
+                break i;
+            } else if lefted_elements > 0 {
+                i += 1;
+            } else {
+                // painc because the input is not solvable matrix
+                panic!("Invalid input: not a valid dimension");
+            }
+        }
+    }
+
     /// Creates a new Gauss object from a vector of fractions
     ///
     /// # Examples
@@ -18,92 +57,139 @@ impl Gauss {
     ///
     /// let gauss = Gauss::new(
     ///     vec![
-    ///         (1, 1), ( 1, 1), (5, 1),
-    ///         (2, 1), (-1, 1), (1, 1)
+    ///         1,  1, 5,
+    ///         2, -1, 1
     ///     ]
-    ///     .map(Fraction::new)
+    ///     .map(|x| Fraction::new(x, 1))
     ///     .collect()
     /// );
     /// ```
-    pub const fn new(fractions: &[Fraction]) -> Self {
-
-        // calculates the dimension of the matrix from the number of elements
-        //
-        // i.pow(n): number of elements on the left  side
-        // i:        number of elements on the right side
-        //
-        // # Examples
-        //
-        // [ 1  1  1 |  6 ]
-        // [ 2 -1  3 |  7 ]
-        // [ 1  4 -1 | 10 ]
-        //
-        // elements_len = 12
-        //
-        // i = 0; i.pow(2) + i = 0  (Greater than 0)
-        // i = 1; i.pow(2) + i = 2  (Greater than 0)
-        // i = 2; i.pow(2) + i = 6  (Greater than 0)
-        // i = 3; i.pow(2) + i = 12 (Equal to 0)
-        //
-        // dimension = 3
-        let dimension = {
-            let elements_len = fractions.len();
-            let mut i: usize = 0;
-
-            loop {
-                let lefted_elements = elements_len - i.pow(2) - i;
-
-                if lefted_elements == 0 {
-                    // 
-                    break i;
-                } else if lefted_elements > 0 {
-                    i += 1;
-                } else {
-                    panic!("Invalid input: not a valid dimension");
-                }
-            }
-        };
+    pub fn new(fractions: &[Fraction]) -> Self {
+        let dimension = Self::calculate_dimension(fractions);
 
         let value = fractions
             .chunks(dimension + 1)
             .map(|x| x.to_vec())
             .collect();
 
-        
         Self { dimension, value }
     }
 
+    /// Solves the matrix using Gaussian elimination
+    ///
+    /// # Examples
+    /// ```
+    /// use gauss::gauss::Gauss;
+    /// use gauss::fraction::Fraction;
+    ///
+    /// let mut gauss = Gauss::new(
+    ///     vec![
+    ///         1,  1, 5,
+    ///         2, -1, 1
+    ///     ]
+    ///     .map(|x| Fraction::new(x, 1))
+    ///     .collect()
+    /// );
+    /// gauss.solve(false);
+    /// gauss.extract().iter().for_each(|x| {
+    ///     print!("{} ", x);
+    /// });
+    ///
+    /// assert_eq!(gauss.extract(), vec![2, 3]);
+    /// ```
     pub fn solve(&mut self, print: bool) {
+
+        // Use forward elimination to zero out the lower triangle
         for i in 0..self.dimension {
-            self.divide_and_subtract(i);
+            self.forward_elimination(i);
             if print {
-                println!("{}", self);
+                print!("forward_elimination: pivot_num = {}\n{}\n", i, self);
+            }
+        }
+
+        // Use backward substitution to zero out the upper triangle
+        for i in 1..self.dimension {
+            for j in 0..i {
+                self.backward_substitution(i, j);
+            }
+
+            if print {
+                print!("backward_elimination: pivot_num = {}\n{}\n", i, self);
             }
         }
     }
 
-    fn divide_and_subtract(&mut self, num: usize) {
-        let pivot = self.value[num][num];
-        let non_pivot_rows: Vec<usize>
-            = (0..self.dimension)
-                .filter(|&i| i != num)
-                .collect();
+    /// Performs forward elimination on the matrix
+    ///
+    /// # Examples
+    /// ```
+    /// [ 5  10  | 15 ]
+    /// [ 2  -1  |  1 ]
+    ///
+    /// forward_elimination(0);
+    ///
+    /// this is the pivot
+    ///   v
+    /// [ 5  10  | 15 ]
+    ///
+    /// divide the pivot by itself
+    /// [ 1  2   |  3 ]
+    ///
+    /// subtract the pivot from the other rows
+    /// [ 1  2   |  3 ]
+    /// [ 0 -5   | -7 ]
+    /// ```
+    fn forward_elimination(&mut self, pivot_index: usize) {
+        let pivot = self.value[pivot_index][pivot_index];
 
-        self.value[num]
+        self.value[pivot_index]
             .iter_mut()
             .for_each(|x| *x /= pivot);
 
-        for i in non_pivot_rows {
-            let factor = self.value[i][num];
+        for i in pivot_index + 1..self.dimension {
 
-            for j in 0..self.dimension+1 {
-                let value_num = self.value[num][j];
-                self.value[i][j] -= factor * value_num;
+            let factor = self.value[i][pivot_index];
+
+            for j in 0..=self.dimension {
+                let value_pivot_index = self.value[pivot_index][j];
+
+                self.value[i][j] -= factor * value_pivot_index;
+            }
+
+        }
+    }
+
+    /// Performs backward substitution on the matrix
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// [ 1  3  4 |  6 ]
+    /// [ 0  1  5 | -7 ]
+    /// [ 0  0  1 |  1 ]
+    ///
+    /// backward_substitution(1, 0);
+    ///
+    /// [ 1 3  4 |  6 ]
+    ///     ^  ^    ^     minus
+    /// [ 0 1  2 | -7 ] * 3
+    ///
+    ///
+    /// [ 1 0 -2 | 27 ]
+    ///
+    fn backward_substitution(&mut self, pivot_index: usize, target_row: usize) {
+        for i in pivot_index..self.dimension {
+            let factor = self.value[target_row][i];
+
+            for j in 0..=self.dimension {
+                let value_pivot_index = self.value[i][j];
+
+                self.value[target_row][j] -= factor * value_pivot_index;
             }
         }
     }
 
-    fn extract(&self) -> Vec<isize> {
+    pub fn extract(&self) -> Vec<Fraction> {
         let mut result = vec![];
 
         for i in 0..self.dimension {
@@ -111,35 +197,66 @@ impl Gauss {
         }
 
         result
-            .into_iter()
-            .map(|x| x.numerator)
-            .collect()
     }
 }
 
+fn max_space_each_col(matrix: Vec<Vec<Fraction>>) -> Vec<usize> {
+    let col_len = matrix[0].len();
+    let row_len = matrix.len();
 
-impl fmt::Display for Gauss {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let mut max_space_each_row = [0].repeat(self.dimension + 1);
+    let mut space_each_col = [0].repeat(col_len);
 
-        for i in 0..self.dimension + 1 {
-            for j in 0..self.dimension {
-                let len = self.value[j][i].len();
-                if max_space_each_row[i] < len {
-                    max_space_each_row[i] = len;
-                }
+    for col in 0..col_len {
+        for row in 0..row_len {
+            let len = matrix[row][col].len();
+
+            if len > space_each_col[col] {
+                space_each_col[col] = len;
             }
         }
+    }
 
-        let mut str = String::new();
-        let edge_space = " ".repeat(max_space_each_row.iter().sum::<usize>() + (self.dimension * 2) + 1);
+    space_each_col
+}
+
+impl fmt::Display for Gauss {
+
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let max_space_each_col = max_space_each_col(self.value.clone());
+
+        // Space between parentheses on lines that don't display fractions
+        //
+        // # Examples
+        //
+        // ┌#.#..##.#┐ <- here
+        // │ 1  1: 5 │
+        // │ 2 -1: 1 │
+        // └#.#..##.#┘ <- and here
+        //
+        // ┌#..#.#..##.#┐
+        // │  1 2  8: 1 │
+        // │ -1 5  3: 3 │
+        // │  1 1 10: 0 │
+        // └#..#.#..##.#┘
+        //
+        // (.: Space to put where a number is)
+        // max_space_each_col
+        //     .iter()
+        //     .sum::<usize>()
+        //
+        // (#: Space between numbers)
+        // self.dimension + 3
+        //
+        let edge_space = " ".repeat(max_space_each_col.iter().sum::<usize>() + self.dimension + 3);
+
 
         let each_space = |i: usize, j: usize| -> String {
-            " ".repeat(max_space_each_row[j] - self.value[i][j].len() + 1)
+            " ".repeat(max_space_each_col[j] - self.value[i][j].len() + 1)
         };
 
-        str += format!("┌{}┐\n", edge_space).as_str();
+        let mut str = String::new();
 
+        str += format!("┌{}┐\n", edge_space).as_str();
 
         for i in 0..self.dimension {
             str += "│";
@@ -149,13 +266,16 @@ impl fmt::Display for Gauss {
                 str += self.value[i][j].to_string().as_str();
             }
 
-            str += format!(
-                ":{}{} │\n",
-                each_space(i, self.dimension),
-                self.value[i][self.dimension].to_string()
-            ).as_str();
+            str += ":";
+            str += each_space(i, self.dimension).as_str();
+            str += self.value[i][self.dimension].to_string().as_str();
+            str += " │\n";
         }
-        str += format!("└{}┘", edge_space).as_str();
+
+        str += "└";
+        str += edge_space.as_str();
+        str += "┘";
+
         write!(f, "{}", str)
     }
 }
@@ -166,17 +286,23 @@ impl fmt::Display for Gauss {
 mod tests {
     use super::*;
 
+    fn deno_1_fraction(value: Vec<isize>) -> Vec<Fraction> {
+        value
+            .into_iter()
+            .map(|x| Fraction::new(x, 1))
+            .collect()
+    }
+
     fn test_temp(
         value: Vec<isize>,
         solution: Vec<isize>,
     ) {
         let mut gauss = Gauss::new(
-            value
-                .into_iter()
-                .map(|x| Fraction::new(x, 1))
-                .collect()
+            &deno_1_fraction(value)
         );
         gauss.solve(false);
+
+        let solution = deno_1_fraction(solution);
 
         assert_eq!(gauss.extract(), solution);
     }
