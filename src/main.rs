@@ -5,10 +5,10 @@ use matrix::fraction::Fraction;
 
 fn main() {
     let a = vec![
-        1,  1,  1,  1, 10,
-        2,  3, -1,  1,  9,
-        1, -1,  2,  3, 17,
-        4,  1,  1, -2,  1
+        10,  1, -1,  1,  55,
+         2,  9, -2,  4, -76,
+        -1, -3, 12,  1,  75,
+        -1,  2, -1, 15, -58
     ]
     .into_iter()
     .map(|n| Fraction::new(n, 1))
@@ -16,8 +16,6 @@ fn main() {
 
     let mut matrix = Matrix::new(&a);
     println!("{}", matrix);
-    matrix.gaussian_elimination(true);
-    matrix.extract().iter().for_each(|x| {
-        print!("{} ", x);
-    });
+    let ans = matrix.jacobi_iterative(35, true);
+    println!("ans: {:?}", ans);
 }

@@ -97,12 +97,12 @@ impl Matrix {
     ///
     /// assert_eq!(Matrix.extract(), vec![2, 3]);
     /// ```
-    pub fn gaussian_elimination(&mut self, print: bool) {
+    pub fn gaussian_elimination(&mut self, debug: bool) {
 
         // Use forward elimination to zero out the lower triangle
         for i in 0..self.dimension {
             self.forward_elimination(i);
-            if print {
+            if debug {
                 print!("forward_elimination: pivot_num = {}\n{}\n", i, self);
             }
         }
@@ -113,7 +113,7 @@ impl Matrix {
                 self.backward_substitution(i, j);
             }
 
-            if print {
+            if debug {
                 print!("backward_elimination: pivot_num = {}\n{}\n", i, self);
             }
         }
@@ -187,6 +187,43 @@ impl Matrix {
                 self.value[target_row][j] -= factor * value_pivot_index;
             }
         }
+    }
+
+    pub fn jacobi_iterative(&mut self, attempts: usize, debug: bool) -> Vec<isize> {
+        let mut x_before  = vec![0f64; self.dimension];
+        let mut x_current = vec![0f64; self.dimension];
+
+        if debug {
+            println!("i 0:");
+        }
+
+        for i in 0..=attempts {
+            for j in 0..self.dimension {
+                let mut sum = 0f64;
+
+                for k in 0..self.dimension {
+                    if j != k {
+                        sum += self.value[j][k].as_f64() * x_before[k];
+                    }
+                }
+
+                x_current[j] = (self.value[j][self.dimension].as_f64() - sum) / self.value[j][j].as_f64();
+            }
+
+            x_before = x_current.clone();
+
+            if debug {
+                print!("i {:3}:", i+1);
+                for j in 0..self.dimension {
+                    print!(" {:>20} ", x_current[j]);
+                }
+                println!();
+            }
+        }
+        x_current
+            .iter()
+            .map(|x| x.round() as isize)
+            .collect()
     }
 
     pub fn extract(&self) -> Vec<Fraction> {
@@ -293,7 +330,7 @@ mod tests {
             .collect()
     }
 
-    fn test_temp(
+    fn gauss_temp(
         value: Vec<isize>,
         solution: Vec<isize>,
     ) {
@@ -308,8 +345,8 @@ mod tests {
     }
 
     #[test]
-    fn two() {
-        test_temp(
+    fn gauss_two() {
+        gauss_temp(
             vec![
                 1,  1, 5,
                 2, -1, 1
@@ -319,8 +356,8 @@ mod tests {
     }
 
     #[test]
-    fn three() {
-        test_temp(
+    fn gauss_three() {
+        gauss_temp(
             vec![
                 1,  1,  1,  6,
                 2, -1,  3,  7,
@@ -331,8 +368,8 @@ mod tests {
     }
 
     #[test]
-    fn four() {
-        test_temp(
+    fn gauss_four() {
+        gauss_temp(
             vec![
                 1,  1,  1,  1, 10,
                 2,  3, -1,  1,  9,
@@ -340,6 +377,33 @@ mod tests {
                 4,  1,  1, -2,  1
             ],
             vec![1, 2, 3, 4]
+        );
+    }
+
+    fn jakobi_temp(
+        value: Vec<isize>,
+        solution: Vec<isize>,
+        attempts: usize,
+    ) {
+        let mut matrix = Matrix::new(
+            &deno_1_fraction(value)
+        );
+        let ans = matrix.jacobi_iterative(attempts, false);
+
+        assert_eq!(ans, solution);
+    }
+
+    #[test]
+    fn jakobi_four() {
+        jakobi_temp(
+            vec![
+                10,  1, -1,  1,  55,
+                 2,  9, -2,  4, -76,
+                -1, -3, 12,  1,  75,
+                -1,  2, -1, 15, -58
+            ],
+            vec![7, -8, 5, -2],
+            50
         );
     }
 }

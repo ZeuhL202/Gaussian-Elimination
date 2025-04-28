@@ -91,6 +91,10 @@ impl Fraction {
         self.numerator   /= gcd as isize;
         self.denominator /= gcd;
     }
+
+    pub const fn as_f64(&self) -> f64 {
+        self.numerator as f64 / self.denominator as f64
+    }
 }
 
 /// Match two fractions into their common denominator
