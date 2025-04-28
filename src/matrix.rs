@@ -297,14 +297,14 @@ mod tests {
         value: Vec<isize>,
         solution: Vec<isize>,
     ) {
-        let mut Matrix = Matrix::new(
+        let mut matrix = Matrix::new(
             &deno_1_fraction(value)
         );
-        Matrix.gaussian_elimination(false);
+        matrix.gaussian_elimination(false);
 
         let solution = deno_1_fraction(solution);
 
-        assert_eq!(Matrix.extract(), solution);
+        assert_eq!(matrix.extract(), solution);
     }
 
     #[test]

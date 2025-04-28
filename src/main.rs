@@ -16,7 +16,7 @@ fn main() {
 
     let mut matrix = Matrix::new(&a);
     println!("{}", matrix);
-    matrix.gauss_elimination(true);
+    matrix.gaussian_elimination(true);
     matrix.extract().iter().for_each(|x| {
         print!("{} ", x);
     });
