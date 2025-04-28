@@ -3,12 +3,12 @@ pub mod fraction;
 use fraction::Fraction;
 
 #[derive(Debug, Clone)]
-pub struct Gauss {
+pub struct Matrix {
     dimension: usize,
     value: Vec<Vec<Fraction>>,
 }
 
-impl Gauss {
+impl Matrix {
 
     /// calculates the dimension of the matrix from the number of elements
     ///
@@ -48,14 +48,14 @@ impl Gauss {
         }
     }
 
-    /// Creates a new Gauss object from a vector of fractions
+    /// Creates a new Matrix object from a vector of fractions
     ///
     /// # Examples
     /// ```
-    /// use gauss::gauss::Gauss;
-    /// use gauss::fraction::Fraction;
+    /// use Matrix::Matrix::Matrix;
+    /// use Matrix::fraction::Fraction;
     ///
-    /// let gauss = Gauss::new(
+    /// let Matrix = Matrix::new(
     ///     vec![
     ///         1,  1, 5,
     ///         2, -1, 1
@@ -75,14 +75,14 @@ impl Gauss {
         Self { dimension, value }
     }
 
-    /// Solves the matrix using Gaussian elimination
+    /// Solves the matrix using gaussian elimination
     ///
     /// # Examples
     /// ```
-    /// use gauss::gauss::Gauss;
-    /// use gauss::fraction::Fraction;
+    /// use Matrix::Matrix::Matrix;
+    /// use Matrix::fraction::Fraction;
     ///
-    /// let mut gauss = Gauss::new(
+    /// let mut Matrix = Matrix::new(
     ///     vec![
     ///         1,  1, 5,
     ///         2, -1, 1
@@ -90,14 +90,14 @@ impl Gauss {
     ///     .map(|x| Fraction::new(x, 1))
     ///     .collect()
     /// );
-    /// gauss.solve(false);
-    /// gauss.extract().iter().for_each(|x| {
+    /// Matrix.solve(false);
+    /// Matrix.extract().iter().for_each(|x| {
     ///     print!("{} ", x);
     /// });
     ///
-    /// assert_eq!(gauss.extract(), vec![2, 3]);
+    /// assert_eq!(Matrix.extract(), vec![2, 3]);
     /// ```
-    pub fn solve(&mut self, print: bool) {
+    pub fn gaussian_elimination(&mut self, print: bool) {
 
         // Use forward elimination to zero out the lower triangle
         for i in 0..self.dimension {
@@ -219,7 +219,7 @@ fn max_space_each_col(matrix: Vec<Vec<Fraction>>) -> Vec<usize> {
     space_each_col
 }
 
-impl fmt::Display for Gauss {
+impl fmt::Display for Matrix {
 
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let max_space_each_col = max_space_each_col(self.value.clone());
@@ -297,14 +297,14 @@ mod tests {
         value: Vec<isize>,
         solution: Vec<isize>,
     ) {
-        let mut gauss = Gauss::new(
+        let mut Matrix = Matrix::new(
             &deno_1_fraction(value)
         );
-        gauss.solve(false);
+        Matrix.gaussian_elimination(false);
 
         let solution = deno_1_fraction(solution);
 
-        assert_eq!(gauss.extract(), solution);
+        assert_eq!(Matrix.extract(), solution);
     }
 
     #[test]

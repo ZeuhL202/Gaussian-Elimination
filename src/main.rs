@@ -1,7 +1,7 @@
-mod gauss;
+mod matrix;
 
-use gauss::Gauss;
-use gauss::fraction::Fraction;
+use matrix::Matrix;
+use matrix::fraction::Fraction;
 
 fn main() {
     let a = vec![
@@ -14,10 +14,10 @@ fn main() {
     .map(|n| Fraction::new(n, 1))
     .collect::<Vec<Fraction>>();
 
-    let mut gauss = Gauss::new(&a);
-    println!("{}", gauss);
-    gauss.solve(true);
-    gauss.extract().iter().for_each(|x| {
+    let mut matrix = Matrix::new(&a);
+    println!("{}", matrix);
+    matrix.gauss_elimination(true);
+    matrix.extract().iter().for_each(|x| {
         print!("{} ", x);
     });
 }
