@@ -11,7 +11,7 @@ repository = "https://github.com/ZeuhL202/Matrix-Solving"
 
 readme = "README.md"
 
-keywords = ["matrix", "linear algebra", "Gaussian elimination", "Jacobi method"]
+keywords = ["matrix"]
 categories = ["mathematics"]
 license = "MIT"
 
