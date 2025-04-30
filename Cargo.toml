@@ -1,4 +1,22 @@
 [package]
-name = "gauss"
+name = "zeuhl_matrix"
 version = "0.1.0"
 edition = "2024"
+
+description = "A matrix that has the ability to solve equations using Gaussian elimination or Jacobi methods."
+
+documentation = "https://docs.rs/zeuhl_matrix/"
+homepage = "https://crates.io/crates/zeuhl_matrix"
+repository = "https://github.com/ZeuhL202/Matrix-Solving"
+
+readme = "README.md"
+
+keywords = ["matrix", "linear algebra", "Gaussian elimination", "Jacobi method"]
+categories = ["mathematics"]
+license = "MIT"
+
+[badges]
+maintenance = { status = "actively-developed" }
+
+[dependencies]
+zeuhl_fraction = "0.1.0"

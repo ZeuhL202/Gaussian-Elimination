@@ -1,6 +1,5 @@
 use std::fmt;
-pub mod fraction;
-use fraction::Fraction;
+use zeuhl_fraction::Fraction;
 
 #[derive(Debug, Clone)]
 pub struct Matrix {

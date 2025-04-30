@@ -3,5 +3,14 @@
 version = 4
 
 [[package]]
-name = "gauss"
+name = "zeuhl_fraction"
 version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "75f0439dac267c7a07221ed700a921cd50740bf58aed83549380b6d5ae2b74b2"
+
+[[package]]
+name = "zeuhl_matrix"
+version = "0.1.0"
+dependencies = [
+ "zeuhl_fraction",
+]
