@@ -225,6 +225,55 @@ impl Matrix {
             .collect()
     }
 
+    pub fn gauss_seidel(&mut self, attempts: usize, debug: bool) -> Vec<isize> {
+        let mut x_before  = vec![0f64; self.dimension];
+        let mut x_current = vec![0f64; self.dimension];
+
+        if debug {
+            println!("i 0:");
+        }
+
+        for h in 0..attempts {
+            for i in 0..self.dimension {
+                let mut ans = 0f64;
+
+                for j in 0..=self.dimension {
+                    if j == i {
+                        continue
+                    }
+
+                    ans += self.value[i][j].as_f64() * {
+                        if j == self.dimension {
+                            1f64
+                        } else if j < i {
+                            -x_current[j]
+                        } else {
+                            -x_before[j]
+                        }
+                    };
+                }
+
+                ans /= self.value[i][i].as_f64();
+                x_current[i] = ans;
+            }
+
+            if debug {
+                print!("i {:3}:", h+1);
+                for j in 0..self.dimension {
+                    print!(" {:>20} ", x_current[j]);
+                }
+                println!();
+            }
+
+            x_before = x_current.clone();
+        }
+
+        x_current
+            .iter()
+            .map(|x| x.round() as isize)
+            .collect()
+    }
+
     pub fn extract(&self) -> Vec<Fraction> {
         let mut result = vec![];
 
