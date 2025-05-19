@@ -1,9 +1,9 @@
 [package]
-name = "zeuhl_matrix"
-version = "0.1.0"
+name = "zeuhl_sem"
+version = "0.2.0"
 edition = "2024"
 
-description = "A matrix that has the ability to solve equations using Gaussian elimination or Jacobi methods."
+description = "A sem (Simultaneous Equation Model) that has the ability to solve equations using Gaussian elimination or Jacobi methods."
 
 documentation = "https://docs.rs/zeuhl_matrix/"
 homepage = "https://crates.io/crates/zeuhl_matrix"
@@ -11,7 +11,6 @@ repository = "https://github.com/ZeuhL202/Matrix-Solving"
 
 readme = "README.md"
 
-keywords = ["matrix"]
 categories = ["mathematics"]
 license = "MIT"
 

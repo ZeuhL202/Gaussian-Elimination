@@ -1,18 +1,13 @@
-mod lib;
-use lib::Matrix;
-use zeuhl_fraction::Fraction;
+use zeuhl_sem::SEM;
 
 fn main() {
-    let a = &[
-        (4, 1), (1, 1), (1, 1), (12, 1),
-        (1, 1), (4, 1), (1, 1), (15, 1),
-        (1, 1), (1, 1), (4, 1), ( 9, 1)
-    ]
-    .iter_mut()
-    .map(|(n, d)| Fraction::new(*n, *d))
-    .collect::<Vec<Fraction>>();
+    let mut sem = SEM::new_from_deno1(
+        vec![
+            4, 1, 1, 12,
+            1, 4, 1, 15,
+            1, 1, 4,  9,
+        ]
+    );
 
-    let mut b = Matrix::new(a);
-
-    b.gauss_seidel(10, true);
+    sem.gauss_seidel(0.01, true);
 }

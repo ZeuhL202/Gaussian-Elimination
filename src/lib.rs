@@ -1,223 +1,352 @@
-use std::fmt;
+use std::{fmt, vec};
 use zeuhl_fraction::Fraction;
 
-#[derive(Debug, Clone)]
-pub struct Matrix {
-    dimension: usize,
-    value: Vec<Vec<Fraction>>,
+#[derive(Debug, Clone, Eq, PartialEq)]
+pub struct SEM {
+    pub unknown_num: usize,
+    pub value: Vec<Vec<Fraction>>,
 }
 
-impl Matrix {
-
-    /// calculates the dimension of the matrix from the number of elements
+impl SEM {
+    /// calculates the unknown_num of the sem from the number of term
+    /// 連立方程式の未知数を求める
     ///
-    /// i.pow(n): number of elements on the left  side
-    /// i:        number of elements on the right side
+    /// i.pow(n): number of term on the left  side
+    /// i:        number of term on the right side
     ///
     /// # Examples
     /// ```
-    /// [ 1  1  1 |  6 ]
-    /// [ 2 -1  3 |  7 ]
-    /// [ 1  4 -1 | 10 ]
+    /// use zeuhl_sem::SEM;
+    /// let sem = SEM::new_from_deno1(vec![
+    ///     1,  1,  1,  6,
+    ///     2, -1,  3,  7,
+    ///     1,  4, -1, 10
+    /// ]);
     ///
-    /// elements_len = 12
+    /// // term_len = 12
     ///
-    /// i = 0  (i.pow(2) + i) =  0  (Greater than 0)
-    /// i = 1  (i.pow(2) + i) =  2  (Greater than 0)
-    /// i = 2  (i.pow(2) + i) =  6  (Greater than 0)
-    /// i = 3  (i.pow(2) + i) = 12  (Equal   to   0)
+    /// // i = 0  (i.pow(2) + i) =  0  (Greater than 0)
+    /// // i = 1  (i.pow(2) + i) =  2  (Greater than 0)
+    /// // i = 2  (i.pow(2) + i) =  6  (Greater than 0)
+    /// // i = 3  (i.pow(2) + i) = 12  (Equal   to   0)
     ///
-    /// dimension = 3
+    /// // unknown_num = 3
+    /// assert_eq!(sem.unknown_num, 3);
     /// ```
-    fn calculate_dimension(fractions: &[Fraction]) -> usize {
-        let elements_len = fractions.len();
+    fn calculate_unknown_num(fractions: &[Fraction]) -> usize {
+        let term_len = fractions.len();
         let mut i: usize = 0;
 
         loop {
-            let lefted_elements = elements_len - i.pow(2) - i;
+            let lefted_term = term_len - i.pow(2) - i;
 
-            if lefted_elements == 0 {
+            if lefted_term == 0 {
                 break i;
-            } else if lefted_elements > 0 {
+            } else if lefted_term > 0 {
                 i += 1;
             } else {
-                // painc because the input is not solvable matrix
-                panic!("Invalid input: not a valid dimension");
+                // painc because the input is not solvable sem
+                panic!("Invalid input: not a valid unknown_num");
             }
         }
     }
 
-    /// Creates a new Matrix object from a vector of fractions
+    /// Creates a new SEM object from a vector of fractions
+    /// 連立方程式を分数から作成する
     ///
     /// # Examples
     /// ```
-    /// use Matrix::Matrix::Matrix;
-    /// use Matrix::fraction::Fraction;
+    /// use zeuhl_fraction::Fraction;
+    /// use zeuhl_sem::SEM;
     ///
-    /// let Matrix = Matrix::new(
+    /// let fractions: Vec<Fraction> =
     ///     vec![
     ///         1,  1, 5,
     ///         2, -1, 1
     ///     ]
-    ///     .map(|x| Fraction::new(x, 1))
-    ///     .collect()
-    /// );
+    ///     .iter_mut()
+    ///     .map(|x| Fraction::new(*x, 1))
+    ///     .collect();
+    ///
+    /// let sem = SEM::new_from_frac(&fractions);
     /// ```
-    pub fn new(fractions: &[Fraction]) -> Self {
-        let dimension = Self::calculate_dimension(fractions);
+    pub fn new_from_frac(fractions: &[Fraction]) -> Self {
+        let unknown_num = Self::calculate_unknown_num(fractions);
 
         let value = fractions
-            .chunks(dimension + 1)
+            .chunks(unknown_num + 1)
             .map(|x| x.to_vec())
             .collect();
 
-        Self { dimension, value }
+        Self { unknown_num, value }
     }
 
-    /// Solves the matrix using gaussian elimination
+    /// Creates a new SEM object from a vector of (isize, usize)
+    /// 連立方程式を (isize, usize) のベクターから作成する
     ///
     /// # Examples
     /// ```
-    /// use Matrix::Matrix::Matrix;
-    /// use Matrix::fraction::Fraction;
+    /// use zeuhl_sem::SEM;
     ///
-    /// let mut Matrix = Matrix::new(
+    /// let fractions: Vec<(isize, usize)> =
+    ///     vec![
+    ///         (1, 1), ( 1, 2), (5, 9),
+    ///         (2, 2), (-1, 4), (1, 5)
+    ///     ];
+    ///
+    /// let sem = SEM::new_from_tuple(fractions);
+    /// ```
+    pub fn new_from_tuple(vec: Vec<(isize, usize)>) -> Self {
+        let fractions = vec
+            .clone()
+            .iter_mut()
+            .map(|(n, d)| Fraction::new(*n, *d))
+            .collect::<Vec<Fraction>>();
+
+        Self::new_from_frac(&fractions)
+    }
+
+    /// Creates a new SEM object from a vector of isize
+    /// 連立方程式を分母1の分数から作成する。
+    ///
+    /// # Examples
+    /// ```
+    /// use zeuhl_sem::SEM;
+    ///
+    /// let fractions: Vec<isize> =
     ///     vec![
     ///         1,  1, 5,
     ///         2, -1, 1
-    ///     ]
-    ///     .map(|x| Fraction::new(x, 1))
-    ///     .collect()
-    /// );
-    /// Matrix.solve(false);
-    /// Matrix.extract().iter().for_each(|x| {
-    ///     print!("{} ", x);
-    /// });
+    ///     ];
     ///
-    /// assert_eq!(Matrix.extract(), vec![2, 3]);
+    /// let sem = SEM::new_from_deno1(fractions);
+    /// ```
+    pub fn new_from_deno1(vec: Vec<isize>) -> Self {
+        let fractins = vec
+            .clone()
+            .iter_mut()
+            .map(|x| Fraction::new(*x, 1))
+            .collect::<Vec<Fraction>>();
+
+        Self::new_from_frac(&fractins)
+    }
+
+    /// Solves the sem using gaussian elimination
+    ///
+    /// # Examples
+    /// ```
+    /// use zeuhl_fraction::Fraction;
+    /// use zeuhl_sem::SEM;
+    ///
+    /// let mut SEM = SEM::new_from_deno1(
+    ///     vec![
+    ///         1,  1, 5,
+    ///         2, -1, 1,
+    ///     ]
+    /// );
+    /// SEM.gaussian_elimination(false);
+    ///
+    /// let answer: Vec<Fraction> =
+    ///     vec![2, 3]
+    ///     .iter_mut()
+    ///     .map(|x| Fraction::new(*x, 1))
+    ///     .collect();
+    ///
+    /// assert_eq!(SEM.extract(), answer);
     /// ```
     pub fn gaussian_elimination(&mut self, debug: bool) {
 
         // Use forward elimination to zero out the lower triangle
-        for i in 0..self.dimension {
-            self.forward_elimination(i);
-            if debug {
-                print!("forward_elimination: pivot_num = {}\n{}\n", i, self);
-            }
+        for i in 0..self.unknown_num {
+            let pivot = self.value[i][i];
+            self.value[i]
+                .iter_mut()
+                .for_each(|x| *x /= pivot);
+
+            // Do forward elimination
+            self.forward_elimination(i, debug);
         }
 
         // Use backward substitution to zero out the upper triangle
-        for i in 1..self.dimension {
-            for j in 0..i {
-                self.backward_substitution(i, j);
-            }
-
-            if debug {
-                print!("backward_elimination: pivot_num = {}\n{}\n", i, self);
-            }
+        for i in 1..self.unknown_num {
+            self.backward_substitution(i, debug);
         }
     }
 
-    /// Performs forward elimination on the matrix
+    /// Performs direct transformation on the sem
+    /// 直接変換を行う
     ///
     /// # Examples
     /// ```
-    /// [ 5  10  | 15 ]
-    /// [ 2  -1  |  1 ]
-    ///
-    /// forward_elimination(0);
-    ///
-    /// this is the pivot
-    ///   v
-    /// [ 5  10  | 15 ]
-    ///
-    /// divide the pivot by itself
-    /// [ 1  2   |  3 ]
-    ///
-    /// subtract the pivot from the other rows
-    /// [ 1  2   |  3 ]
-    /// [ 0 -5   | -7 ]
-    /// ```
-    fn forward_elimination(&mut self, pivot_index: usize) {
-        let pivot = self.value[pivot_index][pivot_index];
+    pub fn direct_transformation(&mut self, pivot_index: usize, target_row: usize) {
+        let factor = self.value[target_row][pivot_index];
 
-        self.value[pivot_index]
-            .iter_mut()
-            .for_each(|x| *x /= pivot);
-
-        for i in pivot_index + 1..self.dimension {
-
-            let factor = self.value[i][pivot_index];
-
-            for j in 0..=self.dimension {
-                let value_pivot_index = self.value[pivot_index][j];
-
-                self.value[i][j] -= factor * value_pivot_index;
-            }
-
+        for i in pivot_index..=self.unknown_num {
+            let value_pivot_index = self.value[pivot_index][i];
+            self.value[target_row][i] -= value_pivot_index * factor;
         }
     }
 
-    /// Performs backward substitution on the matrix
+    /// Performs forward elimination on the sem
+    /// 前進消去を1列分行う
     ///
     /// # Examples
-    ///
     /// ```
-    /// [ 1  3  4 |  6 ]
-    /// [ 0  1  5 | -7 ]
-    /// [ 0  0  1 |  1 ]
+    /// use zeuhl_sem::SEM;
     ///
-    /// backward_substitution(1, 0);
+    /// let mut sem = SEM::new_from_deno1(
+    ///     vec![
+    ///         5, 10, 15, 5,
+    ///         2, -1,  1, 2,
+    ///         1,  1,  1, 3
+    ///     ]
+    /// );
     ///
-    /// [ 1 3  4 |  6 ]
-    ///     ^  ^    ^     minus
-    /// [ 0 1  2 | -7 ] * 3
+    /// let pivot = sem.value[0][0];
+    /// sem.value[0]
+    ///     .iter_mut()
+    ///     .for_each(|x| *x /= pivot);
     ///
+    /// sem.forward_elimination(0, false);
     ///
-    /// [ 1 0 -2 | 27 ]
+    /// let ans_sem = SEM::new_from_deno1(
+    ///     vec![
+    ///         1,  2,  3, 1,
+    ///         0, -5, -5, 0,
+    ///         0, -1, -2, 2,
+    ///     ]
+    /// );
     ///
-    fn backward_substitution(&mut self, pivot_index: usize, target_row: usize) {
-        for i in pivot_index..self.dimension {
-            let factor = self.value[target_row][i];
-
-            for j in 0..=self.dimension {
-                let value_pivot_index = self.value[i][j];
-
-                self.value[target_row][j] -= factor * value_pivot_index;
-            }
+    /// assert_eq!(sem, ans_sem);
+    /// ```
+    pub fn forward_elimination(&mut self, pivot_index: usize, debug: bool) {
+        for i in pivot_index+1..self.unknown_num {
+            self.direct_transformation(pivot_index, i);
         }
-    }
-
-    pub fn jacobi_iterative(&mut self, attempts: usize, debug: bool) -> Vec<isize> {
-        let mut x_before  = vec![0f64; self.dimension];
-        let mut x_current = vec![0f64; self.dimension];
 
         if debug {
-            println!("i 0:");
+            print!("forward_elimination: pivot_num = {}\n{}\n", pivot_index, self);
+        }
+    }
+
+    /// Performs backward substitution on the sem
+    /// 後退代入を1列分行う
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use zeuhl_sem::SEM;
+    ///
+    /// let mut sem = SEM::new_from_deno1(
+    ///     vec![
+    ///         1, 0, 4,  6,
+    ///         0, 1, 2, -7,
+    ///         0, 0, 1,  1,
+    ///     ]
+    /// );
+    ///
+    /// sem.backward_substitution(2, false);
+    ///
+    /// let ans_sem = SEM::new_from_deno1(
+    ///     vec![
+    ///         1, 0, 0,  2,
+    ///         0, 1, 0, -9,
+    ///         0, 0, 1,  1,
+    ///     ]
+    /// );
+    ///
+    /// assert_eq!(sem, ans_sem);
+    /// ```
+    pub fn backward_substitution(&mut self, pivot_index: usize, debug: bool) {
+        for i in 0..pivot_index {
+            self.direct_transformation(pivot_index, i);
         }
 
-        for i in 0..=attempts {
-            for j in 0..self.dimension {
+        if debug {
+            print!("backward_elimination: pivot_num = {}\n{}\n", pivot_index, self);
+        }
+    }
+
+    pub fn diagonally_dominant(&self) -> bool {
+        for i in 0..self.unknown_num {
+            let mut sum = Fraction::new(0, 1);
+            for j in 0..self.unknown_num {
+                if i != j {
+                    sum += self.value[i][j].abs();
+                }
+            }
+            if sum.as_f64() > self.value[i][i].abs().as_f64() {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    /// Solves the sem using jacobi iterative method
+    /// ヤコビ法を用いて解く
+    ///
+    /// # Examples
+    /// ```/*
+    /// use zeuhl_sem::SEM;
+    ///
+    /// let mut sem = SEM::new_from_deno1(
+    ///     vec![
+    ///         1,  1, 5,
+    ///         2, -1, 1,
+    ///     ]
+    /// );
+    ///
+    /// let ans = sem.jacobi_iterative(0.01, false);
+    ///
+    /// assert_eq!(ans, vec![2, 3]);*/
+    /// ```
+    pub fn jacobi_iterative(&mut self, convergence_conditions: f64, debug: bool) -> Vec<isize> {
+        let mut x_before  = vec![0f64; self.unknown_num];
+        let mut x_current = vec![0f64; self.unknown_num];
+
+        if debug {
+            println!("i   0: {}", "         0 ".repeat(self.unknown_num));
+        }
+
+        let mut attempts = 0;
+        loop {
+            if attempts > 10000 {
+                println!("Failed to converge");
+                break;
+            }
+            for j in 0..self.unknown_num {
                 let mut sum = 0f64;
 
-                for k in 0..self.dimension {
+                for k in 0..self.unknown_num {
                     if j != k {
                         sum += self.value[j][k].as_f64() * x_before[k];
                     }
                 }
 
-                x_current[j] = (self.value[j][self.dimension].as_f64() - sum) / self.value[j][j].as_f64();
+                x_current[j] = (self.value[j][self.unknown_num].as_f64() - sum) / self.value[j][j].as_f64();
+            }
+
+            if {
+                let mut sum = 0f64;
+                for i in 0..self.unknown_num {
+                    sum += (x_current[i] - x_before[i]).powi(2);
+                }
+                sum.sqrt() < convergence_conditions
+            } {
+                break
             }
 
             x_before = x_current.clone();
 
             if debug {
-                print!("i {:3}:", i+1);
-                for j in 0..self.dimension {
-                    print!(" {:>20} ", x_current[j]);
+                print!("i {:3}:", attempts+1);
+                for j in 0..self.unknown_num {
+                    print!(" {:>10}", (x_current[j] * 100000000.0).round() / 100000000.0);
                 }
                 println!();
             }
+
+            attempts += 1;
         }
         x_current
             .iter()
@@ -225,25 +354,26 @@ impl Matrix {
             .collect()
     }
 
-    pub fn gauss_seidel(&mut self, attempts: usize, debug: bool) -> Vec<isize> {
-        let mut x_before  = vec![0f64; self.dimension];
-        let mut x_current = vec![0f64; self.dimension];
+    pub fn gauss_seidel(&mut self, convergence_conditions: f64, debug: bool) -> Vec<isize> {
+        let mut x_before  = vec![0f64; self.unknown_num];
+        let mut x_current = vec![0f64; self.unknown_num];
 
         if debug {
-            println!("i 0:");
+            println!("i   0: {}", "         0 ".repeat(self.unknown_num));
         }
 
-        for h in 0..attempts {
-            for i in 0..self.dimension {
+        let mut attempts = 0;
+        loop {
+            for i in 0..self.unknown_num {
                 let mut ans = 0f64;
 
-                for j in 0..=self.dimension {
+                for j in 0..=self.unknown_num {
                     if j == i {
                         continue
                     }
 
                     ans += self.value[i][j].as_f64() * {
-                        if j == self.dimension {
+                        if j == self.unknown_num {
                             1f64
                         } else if j < i {
                             -x_current[j]
@@ -257,15 +387,27 @@ impl Matrix {
                 x_current[i] = ans;
             }
 
+            if {
+                let mut sum = 0f64;
+                for i in 0..self.unknown_num {
+                    sum += (x_current[i] - x_before[i]).powi(2);
+                }
+                sum.sqrt() < convergence_conditions
+            } {
+                break
+            }
+
             if debug {
-                print!("i {:3}:", h+1);
-                for j in 0..self.dimension {
-                    print!(" {:>20} ", x_current[j]);
+                print!("i {:3}:", attempts+1);
+                for j in 0..self.unknown_num {
+                    print!(" {:>10} ", (x_current[j] * 100000000.0).round() / 100000000.0);
                 }
                 println!();
             }
 
             x_before = x_current.clone();
+
+            attempts += 1;
         }
 
         x_current
@@ -277,23 +419,23 @@ impl Matrix {
     pub fn extract(&self) -> Vec<Fraction> {
         let mut result = vec![];
 
-        for i in 0..self.dimension {
-            result.push(self.value[i][self.dimension]);
+        for i in 0..self.unknown_num {
+            result.push(self.value[i][self.unknown_num]);
         }
 
         result
     }
 }
 
-fn max_space_each_col(matrix: Vec<Vec<Fraction>>) -> Vec<usize> {
-    let col_len = matrix[0].len();
-    let row_len = matrix.len();
+fn max_space_each_col(sem: Vec<Vec<Fraction>>) -> Vec<usize> {
+    let col_len = sem[0].len();
+    let row_len = sem.len();
 
     let mut space_each_col = [0].repeat(col_len);
 
     for col in 0..col_len {
         for row in 0..row_len {
-            let len = matrix[row][col].len();
+            let len = sem[row][col].len();
 
             if len > space_each_col[col] {
                 space_each_col[col] = len;
@@ -304,7 +446,7 @@ fn max_space_each_col(matrix: Vec<Vec<Fraction>>) -> Vec<usize> {
     space_each_col
 }
 
-impl fmt::Display for Matrix {
+impl fmt::Display for SEM {
 
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let max_space_each_col = max_space_each_col(self.value.clone());
@@ -330,9 +472,9 @@ impl fmt::Display for Matrix {
         //     .sum::<usize>()
         //
         // (#: Space between numbers)
-        // self.dimension + 3
+        // self.unknown_num + 3
         //
-        let edge_space = " ".repeat(max_space_each_col.iter().sum::<usize>() + self.dimension + 3);
+        let edge_space = " ".repeat(max_space_each_col.iter().sum::<usize>() + self.unknown_num + 3);
 
 
         let each_space = |i: usize, j: usize| -> String {
@@ -343,17 +485,17 @@ impl fmt::Display for Matrix {
 
         str += format!("┌{}┐\n", edge_space).as_str();
 
-        for i in 0..self.dimension {
+        for i in 0..self.unknown_num {
             str += "│";
 
-            for j in 0..self.dimension {
+            for j in 0..self.unknown_num {
                 str += each_space(i, j).as_str();
                 str += self.value[i][j].to_string().as_str();
             }
 
             str += ":";
-            str += each_space(i, self.dimension).as_str();
-            str += self.value[i][self.dimension].to_string().as_str();
+            str += each_space(i, self.unknown_num).as_str();
+            str += self.value[i][self.unknown_num].to_string().as_str();
             str += " │\n";
         }
 
@@ -371,7 +513,7 @@ impl fmt::Display for Matrix {
 mod tests {
     use super::*;
 
-    fn deno_1_fraction(value: Vec<isize>) -> Vec<Fraction> {
+    fn deno_1_fraction(value: Vec<isize>) -> Vec::<Fraction> {
         value
             .into_iter()
             .map(|x| Fraction::new(x, 1))
@@ -382,14 +524,12 @@ mod tests {
         value: Vec<isize>,
         solution: Vec<isize>,
     ) {
-        let mut matrix = Matrix::new(
-            &deno_1_fraction(value)
-        );
-        matrix.gaussian_elimination(false);
+        let mut sem = SEM::new_from_deno1(value);
+        sem.gaussian_elimination(false);
 
         let solution = deno_1_fraction(solution);
 
-        assert_eq!(matrix.extract(), solution);
+        assert_eq!(sem.extract(), solution);
     }
 
     #[test]
@@ -431,14 +571,23 @@ mod tests {
     fn jakobi_temp(
         value: Vec<isize>,
         solution: Vec<isize>,
-        attempts: usize,
     ) {
-        let mut matrix = Matrix::new(
-            &deno_1_fraction(value)
-        );
-        let ans = matrix.jacobi_iterative(attempts, false);
+        let mut sem = SEM::new_from_deno1(value);
+        let ans = sem.jacobi_iterative(0.01,false);
 
         assert_eq!(ans, solution);
+    }
+
+    #[test]
+    fn jakobi_three() {
+        jakobi_temp(
+            vec![
+                4, 1, 1, 12,
+                1, 4, 1, 15,
+                1, 1, 4,  9,
+            ],
+            vec![2, 3, 1],
+        );
     }
 
     #[test]
@@ -451,7 +600,6 @@ mod tests {
                 -1,  2, -1, 15, -58
             ],
             vec![7, -8, 5, -2],
-            50
         );
     }
 }
