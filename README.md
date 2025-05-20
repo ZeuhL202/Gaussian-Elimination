@@ -8,4 +8,5 @@ A matrix that has the ability to solve equations.
 
 Gaussian elimination\
 Jacobi methods\
-Gauss seidel
+Gauss seidel\
+SOR
