@@ -10,7 +10,7 @@ checksum = "db9ec7f17723bae30c81b074402f52ad47ea49255f030d789803175de2fe71d8"
 
 [[package]]
 name = "zeuhl_sem"
-version = "0.2.0"
+version = "0.2.5"
 dependencies = [
  "zeuhl_fraction",
 ]
