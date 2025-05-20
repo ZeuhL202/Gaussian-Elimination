@@ -34,15 +34,15 @@ impl SEM {
     /// assert_eq!(sem.unknown_num, 3);
     /// ```
     fn calculate_unknown_num(fractions: &[Fraction]) -> usize {
-        let term_len = fractions.len();
+        let frac_len = fractions.len();
         let mut i: usize = 0;
 
         loop {
-            let lefted_term = term_len - i.pow(2) - i;
+            let frac_left = frac_len - i.pow(2) - i;
 
-            if lefted_term == 0 {
+            if frac_left == 0 {
                 break i;
-            } else if lefted_term > 0 {
+            } else if frac_left > 0 {
                 i += 1;
             } else {
                 // painc because the input is not solvable sem
@@ -132,6 +132,7 @@ impl SEM {
     }
 
     /// Solves the sem using gaussian elimination
+    /// 連立方程式をガウスの消去法で解く
     ///
     /// # Examples
     /// ```
@@ -155,19 +156,23 @@ impl SEM {
     /// assert_eq!(SEM.extract(), answer);
     /// ```
     pub fn gaussian_elimination(&mut self, debug: bool) {
-
         // Use forward elimination to zero out the lower triangle
+        // 前進消去で下三角行列を0にする
         for i in 0..self.unknown_num {
+            // Set the diagonal elements to 1
+            // 対角要素を1にする
             let pivot = self.value[i][i];
             self.value[i]
                 .iter_mut()
                 .for_each(|x| *x /= pivot);
 
             // Do forward elimination
+            // 前進消去
             self.forward_elimination(i, debug);
         }
 
         // Use backward substitution to zero out the upper triangle
+        // 後退代入で上三角行列を0にする
         for i in 1..self.unknown_num {
             self.backward_substitution(i, debug);
         }
@@ -177,6 +182,26 @@ impl SEM {
     /// 直接変換を行う
     ///
     /// # Examples
+    /// ```
+    /// use zeuhl_sem::SEM;
+    ///
+    /// let mut sem = SEM::new_from_deno1(
+    ///     vec![
+    ///         1,  1, 5,
+    ///         2, -1, 1,
+    ///     ]
+    /// );
+    ///
+    /// sem.direct_transformation(0, 1);
+    ///
+    /// let ans_sem = SEM::new_from_deno1(
+    ///     vec![
+    ///         1,  1,  5,
+    ///         0,  -3, -9,
+    ///     ]
+    /// );
+    ///
+    /// assert_eq!(sem, ans_sem);
     /// ```
     pub fn direct_transformation(&mut self, pivot_index: usize, target_row: usize) {
         let factor = self.value[target_row][pivot_index];
@@ -267,40 +292,14 @@ impl SEM {
         }
     }
 
-    pub fn diagonally_dominant(&self) -> bool {
-        for i in 0..self.unknown_num {
-            let mut sum = Fraction::new(0, 1);
-            for j in 0..self.unknown_num {
-                if i != j {
-                    sum += self.value[i][j].abs();
-                }
-            }
-            if sum.as_f64() > self.value[i][i].abs().as_f64() {
-                return false;
-            }
-        }
-        return true;
-    }
+    fn iterative_model(
+        &mut self,
+        func: fn(&mut SEM, f64, &mut Vec<f64>, &mut Vec<f64>),
+        omega: f64,
+        convergence_conditions: f64,
+        debug: bool
+    ) -> Vec<isize> {
 
-    /// Solves the sem using jacobi iterative method
-    /// ヤコビ法を用いて解く
-    ///
-    /// # Examples
-    /// ```/*
-    /// use zeuhl_sem::SEM;
-    ///
-    /// let mut sem = SEM::new_from_deno1(
-    ///     vec![
-    ///         1,  1, 5,
-    ///         2, -1, 1,
-    ///     ]
-    /// );
-    ///
-    /// let ans = sem.jacobi_iterative(0.01, false);
-    ///
-    /// assert_eq!(ans, vec![2, 3]);*/
-    /// ```
-    pub fn jacobi_iterative(&mut self, convergence_conditions: f64, debug: bool) -> Vec<isize> {
         let mut x_before  = vec![0f64; self.unknown_num];
         let mut x_current = vec![0f64; self.unknown_num];
 
@@ -314,17 +313,8 @@ impl SEM {
                 println!("Failed to converge");
                 break;
             }
-            for j in 0..self.unknown_num {
-                let mut sum = 0f64;
 
-                for k in 0..self.unknown_num {
-                    if j != k {
-                        sum += self.value[j][k].as_f64() * x_before[k];
-                    }
-                }
-
-                x_current[j] = (self.value[j][self.unknown_num].as_f64() - sum) / self.value[j][j].as_f64();
-            }
+            func(self, omega, &mut x_current, &mut x_before);
 
             if {
                 let mut sum = 0f64;
@@ -335,8 +325,6 @@ impl SEM {
             } {
                 break
             }
-
-            x_before = x_current.clone();
 
             if debug {
                 print!("i {:3}:", attempts+1);
@@ -346,34 +334,94 @@ impl SEM {
                 println!();
             }
 
+            x_before = x_current.clone();
             attempts += 1;
         }
+
         x_current
             .iter()
             .map(|x| x.round() as isize)
             .collect()
     }
 
-    pub fn gauss_seidel(&mut self, convergence_conditions: f64, debug: bool) -> Vec<isize> {
-        let mut x_before  = vec![0f64; self.unknown_num];
-        let mut x_current = vec![0f64; self.unknown_num];
+    /// Solves the sem using jacobi iterative method
+    /// ヤコビ法を用いて解く
+    ///
+    /// # Examples
+    /// ```
+    /// use zeuhl_sem::SEM;
+    ///
+    /// let mut sem = SEM::new_from_deno1(
+    ///     vec![
+    ///         4, 1, 1, 12,
+    ///         1, 4, 1, 15,
+    ///         1, 1, 4,  9,
+    ///     ],
+    /// );
+    ///
+    /// let result = sem.jacobi_iterative(0.01, false);
+    ///
+    /// assert_eq!(result, vec![2, 3, 1]);
+    /// ```
+    pub fn jacobi_iterative(&mut self, convergence_conditions: f64, debug: bool) -> Vec<isize> {
+        fn func (
+            sem: &mut SEM,
+            _: f64,
+            x_current: &mut Vec<f64>,
+            x_before: &mut Vec<f64>
+        ) {
+            for i in 0..sem.unknown_num {
+                let mut sum = 0f64;
 
-        if debug {
-            println!("i   0: {}", "         0 ".repeat(self.unknown_num));
+                for j in 0..sem.unknown_num {
+                    if i != j {
+                        sum += sem.value[i][j].as_f64() * x_before[j];
+                    }
+                }
+
+                x_current[i] = (sem.value[i][sem.unknown_num].as_f64() - sum) / sem.value[i][i].as_f64();
+            }
         }
 
-        let mut attempts = 0;
-        loop {
-            for i in 0..self.unknown_num {
+        self.iterative_model(func, 0.0, convergence_conditions, debug)
+    }
+
+    /// Solves the sem using gauss seidel iterative method
+    /// ガウスセイデル法を用いて解く
+    ///
+    /// # Examples
+    /// ```
+    /// use zeuhl_sem::SEM;
+    ///
+    /// let mut sem = SEM::new_from_deno1(
+    ///     vec![
+    ///         4, 1, 1, 12,
+    ///         1, 4, 1, 15,
+    ///         1, 1, 4,  9,
+    ///     ],
+    /// );
+    ///
+    /// let result = sem.gauss_seidel(0.01, false);
+    ///
+    /// assert_eq!(result, vec![2, 3, 1]);
+    /// ```
+    pub fn gauss_seidel(&mut self, convergence_conditions: f64, debug: bool) -> Vec<isize> {
+        fn func (
+            sem: &mut SEM,
+            _: f64,
+            x_current: &mut Vec<f64>,
+            x_before: &mut Vec<f64>
+        ) {
+            for i in 0..sem.unknown_num {
                 let mut ans = 0f64;
 
-                for j in 0..=self.unknown_num {
+                for j in 0..=sem.unknown_num {
                     if j == i {
                         continue
                     }
 
-                    ans += self.value[i][j].as_f64() * {
-                        if j == self.unknown_num {
+                    ans += sem.value[i][j].as_f64() * {
+                        if j == sem.unknown_num {
                             1f64
                         } else if j < i {
                             -x_current[j]
@@ -383,37 +431,69 @@ impl SEM {
                     };
                 }
 
-                ans /= self.value[i][i].as_f64();
+                ans /= sem.value[i][i].as_f64();
                 x_current[i] = ans;
             }
-
-            if {
-                let mut sum = 0f64;
-                for i in 0..self.unknown_num {
-                    sum += (x_current[i] - x_before[i]).powi(2);
-                }
-                sum.sqrt() < convergence_conditions
-            } {
-                break
-            }
-
-            if debug {
-                print!("i {:3}:", attempts+1);
-                for j in 0..self.unknown_num {
-                    print!(" {:>10} ", (x_current[j] * 100000000.0).round() / 100000000.0);
-                }
-                println!();
-            }
-
-            x_before = x_current.clone();
-
-            attempts += 1;
         }
 
-        x_current
-            .iter()
-            .map(|x| x.round() as isize)
-            .collect()
+        self.iterative_model(func, 0.0, convergence_conditions, debug)
+    }
+
+    /// Solves the sem using sor iterative method
+    /// SOR法を用いて解く
+    ///
+    /// # Examples
+    /// ```
+    /// use zeuhl_sem::SEM;
+    ///
+    /// let mut sem = SEM::new_from_deno1(
+    ///     vec![
+    ///         4, 1, 1, 12,
+    ///         1, 4, 1, 15,
+    ///         1, 1, 4,  9,
+    ///     ],
+    /// );
+    ///
+    /// let result = sem.sor(1.25, 0.01, false);
+    ///
+    /// assert_eq!(result, vec![2, 3, 1]);
+    /// ```
+    pub fn sor(&mut self, omega: f64, convergence_conditions: f64, debug: bool) -> Vec<isize> {
+        fn func (
+            sem: &mut SEM,
+            omega: f64,
+            x_current: &mut Vec<f64>,
+            x_before: &mut Vec<f64>
+        ){
+            for i in 0..sem.unknown_num {
+                let mut ans = 0f64;
+
+                for j in 0..=sem.unknown_num {
+                    if j == i {
+                        continue
+                    }
+
+                    ans += sem.value[i][j].as_f64() * {
+                        if j == sem.unknown_num {
+                            1f64
+                        } else if j < i {
+                            -x_current[j]
+                        } else {
+                            -x_before[j]
+                        }
+                    };
+                }
+
+                ans /= sem.value[i][i].as_f64();
+                ans *= omega;
+
+                ans += (1.0 - omega) * x_current[i];
+
+                x_current[i] = ans;
+            }
+        }
+
+        self.iterative_model(func, omega, convergence_conditions, debug)
     }
 
     pub fn extract(&self) -> Vec<Fraction> {
@@ -595,7 +675,7 @@ mod tests {
         jakobi_temp(
             vec![
                 10,  1, -1,  1,  55,
-                 2,  9, -2,  4, -76,
+                02,  9, -2,  4, -76,
                 -1, -3, 12,  1,  75,
                 -1,  2, -1, 15, -58
             ],
