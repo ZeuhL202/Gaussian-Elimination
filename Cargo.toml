@@ -1,6 +1,6 @@
 [package]
 name = "zeuhl_sem"
-version = "0.2.5"
+version = "0.2.6"
 edition = "2024"
 
 description = "A sem (Simultaneous Equation Model) that has the ability to solve equations using Gaussian elimination or Jacobi methods."
